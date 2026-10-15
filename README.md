@@ -56,8 +56,7 @@ The following sections will be added progressively:
 
 ## Benchmark Results
 
-All configurations use hidden size 32, 600 updates, batch size 64,
-Adam with learning rate 0.003, and gradient clipping at 1.0.
+All configurations use hidden size 32, 600 updates, batch size 64, Adam with learning rate 0.003, and gradient clipping at 1.0.
 
 | Configuration | Length | Seed 0 | Seed 1 | Seed 2 | Mean |
 |---|---:|---:|---:|---:|---:|
@@ -77,29 +76,19 @@ Adam with learning rate 0.003, and gradient clipping at 1.0.
 | GRU bias 3 | 30 | 1.000 | 1.000 | 1.000 | 1.000 |
 | GRU bias 3 | 60 | 1.000 | 1.000 | 1.000 | 1.000 |
 
-Default configurations remained near chance accuracy of 0.25 at lengths
-30 and 60. Both bias-3 configurations achieved perfect accuracy for
-every tested length and seed. The short-task RNN result also showed
-seed sensitivity.
+Default configurations remained near chance accuracy of 0.25 at lengths 30 and 60. Both bias-3 configurations achieved perfect accuracy for every tested length and seed. The short-task RNN result also showed seed sensitivity.
 
 ### Gate Verification
 
-The initialization check confirmed that slice [32:64] selects the LSTM
-forget gate and GRU update gate. Each selected bias vector contained
-1.5, giving an effective bias of 3 when bias_ih and bias_hh were summed.
+The initialization check confirmed that slice [32:64] selects the LSTM forget gate and GRU update gate. Each selected bias vector contained 1.5, giving an effective bias of 3 when bias_ih and bias_hh were summed.
 
-The relationship between benchmark performance and gradient propagation
-will be examined in the next experiment.
+The relationship between benchmark performance and gradient propagation will be examined in the next experiment.
 
 ## Gradients Through Time
 
-Untrained networks were evaluated using 60 steps, 8 input features,
-hidden size 32, and batch size 16. Cross-entropy loss used only the
-final recurrent output.
+Untrained networks were evaluated using 60 steps, 8 input features, hidden size 32, and batch size 16. Cross-entropy loss used only the final recurrent output.
 
-For each step, input-gradient L2 norms were computed across features,
-averaged across examples, and summarized by the median over seeds
-0 through 4.
+For each step, input-gradient L2 norms were computed across features, averaged across examples, and summarized by the median over seeds 0 through 4.
 
 | Steps back | RNN | LSTM default | LSTM bias 3 |
 |---:|---:|---:|---:|
@@ -110,23 +99,40 @@ averaged across examples, and summarized by the median over seeds
 
 ![Gradients through time](output/figures/gradient_through_time.png)
 
-The RNN and default LSTM showed strong gradient decay, consistent
-with their longer-sequence benchmark accuracies near chance (0.25).
-The bias-3 LSTM preserved stronger gradients to distant inputs and
-achieved 1.000 benchmark accuracy at every tested length.
+The RNN and default LSTM showed strong gradient decay, consistent with their longer-sequence benchmark accuracies near chance (0.25). The bias-3 LSTM preserved stronger gradients to distant inputs and achieved 1.000 benchmark accuracy at every tested length.
 
-These initialization measurements support an explanation for the
-training outcomes but do not track gradients during training.
+These initialization measurements support an explanation for the training outcomes but do not track gradients during training.
 
 ## Prediction Before the Clipping Comparison
 
-Clipping is expected to limit large parameter gradients and may
-improve training stability. It cannot restore gradients that have
-already vanished through time.
+Clipping is expected to limit large parameter gradients and may improve training stability. It cannot restore gradients that have already vanished through time.
 
-Given the RNN's measured gradient decay, clipping alone is not
-expected to reliably solve the 30-step recall task. Both conditions
-may remain near chance accuracy of 0.25.
+Given the RNN's measured gradient decay, clipping alone is not expected to reliably solve the 30-step recall task. Both conditions may remain near chance accuracy of 0.25.
 
-This prediction is recorded before running the comparison and will
-be retained regardless of the outcome.
+This prediction is recorded before running the comparison and will be retained regardless of the outcome.
+
+## Controlled Fixes
+
+Both experiments used sequence length 30, seeds 0 through 2, and the starter's remaining default training settings.
+
+### Forget-Bias Sweep
+
+| Effective forget bias | Seed 0 | Seed 1 | Seed 2 | Mean |
+|---|---:|---:|---:|---:|
+| 0 | 0.247 | 0.251 | 0.258 | 0.252 |
+| 1 | 0.495 | 0.496 | 1.000 | 0.664 |
+| 2 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 3 | 1.000 | 1.000 | 1.000 | 1.000 |
+
+Bias 0 remained near chance (0.25), bias 1 showed seed sensitivity, and biases 2 and 3 solved the task for every tested seed. An explicit bias of 0 differs from default random initialization.
+
+### Clipping Comparison
+
+| Clipping | Seed 0 | Seed 1 | Seed 2 | Mean |
+|---|---:|---:|---:|---:|
+| On (1.0) | 0.248 | 0.251 | 0.264 | 0.254 |
+| Off | 0.248 | 0.251 | 0.264 | 0.254 |
+
+Both conditions remained near chance, agreeing with the advance prediction. Clipping did not improve final accuracy in these runs.
+
+This is consistent with the RNN's strong input-gradient decay: clipping limits large parameter gradients but does not restore vanished gradients. Parameter-gradient norms were not recorded, so these results do not establish whether clipping activated.
