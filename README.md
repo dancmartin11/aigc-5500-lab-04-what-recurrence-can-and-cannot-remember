@@ -136,3 +136,25 @@ Bias 0 remained near chance (0.25), bias 1 showed seed sensitivity, and biases 2
 Both conditions remained near chance, agreeing with the advance prediction. Clipping did not improve final accuracy in these runs.
 
 This is consistent with the RNN's strong input-gradient decay: clipping limits large parameter gradients but does not restore vanished gradients. Parameter-gradient norms were not recorded, so these results do not establish whether clipping activated.
+
+## Timing
+
+An LSTM forward and backward pass was measured on the CPU using
+batch size 16, input size 8, and hidden size 32. Each length received
+one warm-up and three timed repeats; the best repeat is reported.
+
+Timing excludes model creation, data generation, gradient clearing,
+and optimizer updates.
+
+Environment: PyTorch 2.14.0+cpu, 12 CPU threads.
+
+| Sequence length | Best time (ms) |
+|---|---:|
+| 50 | 19.630 |
+| 100 | 15.790 |
+| 200 | 101.439 |
+| 400 | 147.496 |
+
+Longer sequences generally required more computation, but results
+were not monotonic: 100 steps ran faster than 50. These measurements
+do not establish precise linear scaling.
