@@ -90,3 +90,43 @@ forget gate and GRU update gate. Each selected bias vector contained
 
 The relationship between benchmark performance and gradient propagation
 will be examined in the next experiment.
+
+## Gradients Through Time
+
+Untrained networks were evaluated using 60 steps, 8 input features,
+hidden size 32, and batch size 16. Cross-entropy loss used only the
+final recurrent output.
+
+For each step, input-gradient L2 norms were computed across features,
+averaged across examples, and summarized by the median over seeds
+0 through 4.
+
+| Steps back | RNN | LSTM default | LSTM bias 3 |
+|---:|---:|---:|---:|
+| 0 | 7.434e-03 | 2.077e-03 | 2.070e-03 |
+| 9 | 2.165e-05 | 1.490e-05 | 7.127e-04 |
+| 29 | 5.675e-11 | 1.055e-09 | 5.765e-04 |
+| 59 | 3.493e-19 | 7.996e-16 | 1.115e-03 |
+
+![Gradients through time](output/figures/gradient_through_time.png)
+
+The RNN and default LSTM showed strong gradient decay, consistent
+with their longer-sequence benchmark accuracies near chance (0.25).
+The bias-3 LSTM preserved stronger gradients to distant inputs and
+achieved 1.000 benchmark accuracy at every tested length.
+
+These initialization measurements support an explanation for the
+training outcomes but do not track gradients during training.
+
+## Prediction Before the Clipping Comparison
+
+Clipping is expected to limit large parameter gradients and may
+improve training stability. It cannot restore gradients that have
+already vanished through time.
+
+Given the RNN's measured gradient decay, clipping alone is not
+expected to reliably solve the 30-step recall task. Both conditions
+may remain near chance accuracy of 0.25.
+
+This prediction is recorded before running the comparison and will
+be retained regardless of the outcome.
